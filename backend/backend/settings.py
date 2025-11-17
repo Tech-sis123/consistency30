@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import dj_database_url
 import os
 from dotenv import load_dotenv
 
@@ -41,13 +42,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'drf_spectacular',
+    'drf_spectacular_sidecar',  # For serving static files
+    
     'users',
     'core',
-    'habits',
-    'checkins',
     'ai_validation',
 ]
 
@@ -86,12 +89,20 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DATABASE_URL = os.getenv("DATABASE_URL")
+if(DATABASE_URL):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv("DATABASE_URL")
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -129,23 +140,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# REST Framework Configuration
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-}
 
 # JWT Configuration
 from datetime import timedelta
@@ -156,11 +156,7 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
+CORS_ALLOW_ALL_ORIGINS=True
 CORS_ALLOW_CREDENTIALS = True
 
 # Media Files
@@ -176,3 +172,108 @@ GOOGLE_AI_API_KEY = os.getenv('GOOGLE_AI_API_KEY')
 # File Upload Settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+
+# Add REST Framework configuration for Spectacular
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+}
+
+# Spectacular Settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Consistency30 API',
+    'DESCRIPTION': '''
+    # Consistency30 - AI-Powered Habit Tracking Backend
+    
+    ## Overview
+    Consistency30 helps users build lasting habits through AI-powered accountability and gradual consistency tracking.
+    
+    ## Key Features
+    - 🤖 AI-powered habit validation (photo, audio, text, screen recording)
+    - 🎯 Goal setting and 30-day challenges
+    - 📊 Progress tracking and insights
+    - 👥 Accountability partnerships
+    - 📈 Streak maintenance and milestones
+    
+    ## Authentication
+    This API uses JWT authentication. Include the token in the Authorization header:
+    `Authorization: Bearer <your_access_token>`
+    
+    ## Getting Started
+    1. Register a new user at `/api/auth/register/`
+    2. Login to get your access token at `/api/auth/login/`
+    3. Complete onboarding to set up your goals and habits
+    4. Start tracking your daily check-ins
+    ''',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    
+    # Sidecar settings for serving static files
+    'SWAGGER_UI_DIST': 'SIDECAR',
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+    
+    # Available Swagger UI configurations: https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': True,
+        'filter': True,
+        'tagsSorter': 'alpha',
+        'operationsSorter': 'alpha',
+    },
+    
+    # Authentication
+    'SECURITY': [{'Bearer': []}],
+    'COMPONENT_SPLIT_REQUEST': True,
+    
+    # Tags for grouping endpoints
+    'TAGS': [
+        {
+            'name': 'authentication',
+            'description': 'User registration, login, and account management'
+        },
+        {
+            'name': 'users',
+            'description': 'User profiles, settings, and accountability partners'
+        },
+        {
+            'name': 'goals',
+            'description': 'Goal management and tracking'
+        },
+        {
+            'name': 'habits',
+            'description': 'Habit creation and management'
+        },
+        {
+            'name': 'checkins',
+            'description': 'Daily check-ins and progress tracking'
+        },
+        {
+            'name': 'ai-validation',
+            'description': 'AI-powered habit validation and insights'
+        },
+        {
+            'name': 'analytics',
+            'description': 'Progress insights, streaks, and statistics'
+        }
+    ],
+    
+    # Custom schema generation
+    'PREPROCESSING_HOOKS': [],
+    'POSTPROCESSING_HOOKS': [],
+    
+    # Enum handling
+    'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
+    'ENUM_GENERATE_CHOICE_DESCRIPTION': True,
+    
+    # Customize operation IDs
+    'GET_OPERATION_BASE': '/api/',
+}
