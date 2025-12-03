@@ -47,7 +47,7 @@ class AIFeedbackSerializer(serializers.ModelSerializer):
     class Meta:
         model = AIFeedback
         fields = '__all__'
-        read_only_fields = ('created_at', 'updated_at')
+        read_only_fields = ('user', 'created_at', 'updated_at')  # Add 'user' to read_only_fields
 
     def validate_checkin(self, value):
         if value.habit.goal.user != self.context['request'].user:

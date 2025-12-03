@@ -71,6 +71,8 @@ class HabitSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"goal": "You can only create habits for your own goals."})
         return attrs
 
+# In core/serializers.py - update the DailyCheckInSerializer
+
 class DailyCheckInSerializer(serializers.ModelSerializer):
     habit_title = serializers.CharField(source='habit.title', read_only=True)
     goal_title = serializers.CharField(source='habit.goal.title', read_only=True)
@@ -80,6 +82,22 @@ class DailyCheckInSerializer(serializers.ModelSerializer):
         model = DailyCheckIn
         fields = '__all__'
         read_only_fields = ('ai_confidence', 'ai_feedback', 'is_approved', 'validated_at', 'created_at', 'updated_at')
+    
+    def to_representation(self, instance):
+        """Override to handle date serialization properly"""
+        representation = super().to_representation(instance)
+        
+        # Handle date fields to ensure they're serialized as strings
+        if 'date' in representation and representation['date']:
+            representation['date'] = instance.date.isoformat()
+        
+        # Handle datetime fields
+        datetime_fields = ['completed_at', 'validated_at', 'created_at', 'updated_at']
+        for field in datetime_fields:
+            if field in representation and representation[field]:
+                representation[field] = instance.__dict__.get(field).isoformat() if hasattr(instance, field) else None
+        
+        return representation
     
     def validate(self, attrs):
         # Ensure the habit belongs to the current user
@@ -115,6 +133,11 @@ class DailyCheckInSerializer(serializers.ModelSerializer):
         if 'date' not in validated_data:
             from django.utils import timezone
             validated_data['date'] = timezone.now().date()
+        
+        # Ensure we're not passing datetime objects to date fields
+        if 'date' in validated_data and isinstance(validated_data['date'], str):
+            from datetime import datetime
+            validated_data['date'] = datetime.strptime(validated_data['date'], '%Y-%m-%d').date()
         
         checkin = super().create(validated_data)
         

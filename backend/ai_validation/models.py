@@ -52,7 +52,7 @@ class ValidationRule(models.Model):
 
 class ValidationLog(models.Model):
     checkin = models.ForeignKey('core.DailyCheckIn', on_delete=models.CASCADE, related_name='validation_logs')
-    validation_rule = models.ForeignKey(ValidationRule, on_delete=models.CASCADE)
+    validation_rule = models.ForeignKey(ValidationRule, on_delete=models.CASCADE, null=True, blank=True)
     
     # Input data
     input_data_preview = models.TextField(blank=True, help_text="Preview of the input data sent to AI")

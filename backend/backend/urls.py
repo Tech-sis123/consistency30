@@ -32,7 +32,7 @@ urlpatterns = [
     # API Endpoints
     path('api/auth/', include('users.urls')),
     path('api/core/', include('core.urls')),
-    path('api/ai/', include('ai_validation.urls')),
+    path('api/ai/', include('ai_validation.urls', namespace='ai')),  # Add namespace='ai'
 ]
 
 if settings.DEBUG:
