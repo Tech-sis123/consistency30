@@ -2,6 +2,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.db.models import Avg
 from django.utils import timezone
 from .models import AIConfig, ValidationRule, ValidationLog, AITrainingData, AIFeedback, ModelPerformance
 from .serializers import (

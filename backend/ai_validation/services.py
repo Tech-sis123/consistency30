@@ -1,4 +1,4 @@
-from google import genai # <--- CHANGED THIS LINE
+import google.generativeai as genai
 import time
 import json
 import base64
@@ -53,7 +53,7 @@ class AIService:
             
             # Perform validation based on type
             if checkin.habit.validation_method == 'photo':
-                # Note: 'gemini-pro-vision' is now commonly aliased to a multimodel,
+                # Note: 'gemini-2.5-flash' is now commonly aliased to a multimodel,
                 # but 'gemini-2.5-flash' handles multimodal inputs and is faster/cheaper.
                 result = self._validate_photo(checkin, validation_rule) 
             elif checkin.habit.validation_method == 'text':

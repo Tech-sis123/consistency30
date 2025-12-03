@@ -5,7 +5,12 @@ from .models import User, UserProfile, UserSettings
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
-        UserProfile.objects.create(user=instance)
+        UserProfile.objects.create(
+            user=instance,
+            primary_goal='',
+            motivation_why='',
+            daily_time_commitment=30  # Default 30 minutes per day
+        )
         UserSettings.objects.create(user=instance)
 
 @receiver(post_save, sender=User)

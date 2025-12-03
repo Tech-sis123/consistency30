@@ -10,6 +10,8 @@ from unittest.mock import patch, MagicMock
 from datetime import date, timedelta
 from decimal import Decimal
 
+from ai_validation.services import AIService
+
 from .models import (
     AIConfig, ValidationRule, ValidationLog, AITrainingData,
     AIFeedback, ModelPerformance, ValidationCache
@@ -22,28 +24,28 @@ class AIConfigModelTest(TestCase):
     def test_aiconfig_creation(self):
         config = AIConfig.objects.create(
             name='Test Config',
-            api_key='test-key-123',
-            model_name='gemini-pro',
+            api_key='AIzaSyCsijuQ-0sV6Xqj89MZniJPJ1iEk15gPbg',
+            model_name='gemini-2.5-flash',
             max_tokens=1000,
             temperature=0.7,
             is_active=True
         )
         self.assertEqual(config.name, 'Test Config')
-        self.assertEqual(config.model_name, 'gemini-pro')
+        self.assertEqual(config.model_name, 'gemini-2.5-flash')
         self.assertTrue(config.is_active)
         self.assertIsNotNone(config.created_at)
 
     def test_aiconfig_str(self):
         config = AIConfig.objects.create(
             name='Test Config',
-            model_name='gemini-pro-vision'
+            model_name='gemini-2.5-flash'
         )
-        self.assertEqual(str(config), "Test Config (gemini-pro-vision)")
+        self.assertEqual(str(config), "Test Config (gemini-2.5-flash)")
 
     def test_aiconfig_unique_name(self):
-        AIConfig.objects.create(name='Unique Config', model_name='gemini-pro')
+        AIConfig.objects.create(name='Unique Config', model_name='gemini-2.5-flash')
         with self.assertRaises(Exception):
-            AIConfig.objects.create(name='Unique Config', model_name='gemini-pro')
+            AIConfig.objects.create(name='Unique Config', model_name='gemini-2.5-flash')
 
 class ValidationRuleModelTest(TestCase):
     def test_validationrule_creation(self):
@@ -71,8 +73,8 @@ class ValidationRuleModelTest(TestCase):
         rule1 = ValidationRule.objects.create(name='A Rule', validation_type='photo', prompt_template='test')
         rule2 = ValidationRule.objects.create(name='B Rule', validation_type='audio', prompt_template='test')
         rules = list(ValidationRule.objects.all())
-        self.assertEqual(rules[0], rule1)  # Should be ordered by validation_type, then name
-        self.assertEqual(rules[1], rule2)
+        self.assertEqual(rules[0], rule2)  # Should be ordered by validation_type, then name ('audio' before 'photo')
+        self.assertEqual(rules[1], rule1)
 
 class ValidationLogModelTest(TestCase):
     def setUp(self):
@@ -105,7 +107,8 @@ class ValidationLogModelTest(TestCase):
             validation_rule=rule,
             confidence_score=0.8,
             is_approved=True,
-            success=True
+            success=True,
+            processing_time=1.5
         )
         expected_str = f"Validation for {self.habit.title} - {log.created_at}"
         self.assertEqual(str(log), expected_str)
@@ -232,20 +235,20 @@ class AIServiceTest(TestCase):
         from .services import AIService
         self.service = AIService()
 
-    @patch('backend.ai_validation.services.genai.configure')
+    @patch('ai_validation.services.genai.configure')
     def test_service_initialization(self, mock_configure):
         service = AIService()
         mock_configure.assert_called_once()
 
-    @patch('backend.ai_validation.services.genai.GenerativeModel')
+    @patch('ai_validation.services.genai.GenerativeModel')
     def test_get_model_caching(self, mock_model):
         mock_instance = MagicMock()
         mock_model.return_value = mock_instance
 
         # First call
-        model1 = self.service.get_model('gemini-pro')
+        model1 = self.service.get_model('gemini-2.5-flash')
         # Second call should use cache
-        model2 = self.service.get_model('gemini-pro')
+        model2 = self.service.get_model('gemini-2.5-flash')
 
         self.assertEqual(model1, model2)
         mock_model.assert_called_once()
@@ -288,6 +291,14 @@ class AIServiceTest(TestCase):
         self.assertEqual(result['confidence'], 0.9)
 
     def test_validate_text_no_proof(self):
+        # Create validation rule first
+        ValidationRule.objects.create(
+            name='Text Validation',
+            validation_type='text',
+            prompt_template='Analyze text for {validation_prompt}',
+            confidence_threshold=0.7
+        )
+
         user = User.objects.create_user(email='test@example.com', username='testuser', password='testpass123')
         goal = Goal.objects.create(user=user, title='Test Goal', category='learning')
         habit = Habit.objects.create(
@@ -303,7 +314,7 @@ class AIServiceTest(TestCase):
         self.assertFalse(result['success'])
         self.assertIn('No text proof provided', result['error'])
 
-    @patch('backend.ai_validation.services.genai.GenerativeModel')
+    @patch('ai_validation.services.genai.GenerativeModel')
     def test_validate_photo_success(self, mock_model):
         # Setup
         user = User.objects.create_user(email='test@example.com', username='testuser', password='testpass123')
@@ -412,7 +423,7 @@ class InsightGeneratorTest(TestCase):
         from .services import InsightGenerator
         self.generator = InsightGenerator()
 
-    @patch('backend.ai_validation.services.genai.GenerativeModel')
+    @patch('ai_validation.services.genai.GenerativeModel')
     def test_generate_weekly_insights_success(self, mock_model):
         user = User.objects.create_user(email='test@example.com', username='testuser', password='testpass123')
         goal = Goal.objects.create(user=user, title='Test Goal', category='fitness')
@@ -461,7 +472,7 @@ class ValidateCheckInViewTest(APITestCase):
             text_proof='I exercised for 30 minutes today.'
         )
         self.client.force_authenticate(user=self.user)
-        self.url = reverse('validate-checkin')
+        self.url = reverse('ai:validate-checkin')
 
     @patch('ai_validation.services.AIService.validate_checkin')
     def test_validate_checkin_success(self, mock_validate):
@@ -504,15 +515,14 @@ class ValidateCheckInViewTest(APITestCase):
 class ManualValidationViewTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email='test@example.com', username='testuser', password='testpass123')
-        self.checkin = DailyCheckIn.objects.create(
-            habit__goal__user=self.user,
-            habit__goal__title='Test',
-            habit__goal__category='fitness',
-            habit__title='Test Habit',
-            habit__validation_method='self_report',
-            habit__validation_prompt='test',
-            date=timezone.now().date()
+        goal = Goal.objects.create(user=self.user, title='Test Goal', category='fitness')
+        habit = Habit.objects.create(
+            goal=goal,
+            title='Test Habit',
+            validation_method='self_report',
+            validation_prompt='test'
         )
+        self.checkin = DailyCheckIn.objects.create(habit=habit, date=timezone.now().date())
         self.client.force_authenticate(user=self.user)
         self.url = reverse('manual-validation')
 
@@ -536,7 +546,7 @@ class GenerateInsightsViewTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email='test@example.com', username='testuser', password='testpass123')
         self.client.force_authenticate(user=self.user)
-        self.url = reverse('generate-insights')
+        self.url = reverse('ai:generate-insights')
 
     @patch('ai_validation.services.InsightGenerator.generate_weekly_insights')
     def test_generate_insights_success(self, mock_generate):
@@ -583,7 +593,7 @@ class UserValidationLogsViewTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email='test@example.com', username='testuser', password='testpass123')
         self.client.force_authenticate(user=self.user)
-        self.url = reverse('validation-logs')
+        self.url = reverse('ai:validation-logs')
 
     def test_get_logs(self):
         response = self.client.get(self.url)
@@ -595,7 +605,7 @@ class AIPerformanceViewTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email='test@example.com', username='testuser', password='testpass123')
         self.client.force_authenticate(user=self.user)
-        self.url = reverse('ai-performance')
+        self.url = reverse('ai:ai-performance')
 
     def test_get_performance(self):
         response = self.client.get(self.url)
@@ -638,7 +648,7 @@ class RetryFailedValidationViewTest(APITestCase):
             retry_count=0
         )
         self.client.force_authenticate(user=self.user)
-        self.url = reverse('retry-validation', kwargs={'log_id': self.failed_log.id})
+        self.url = reverse('ai:retry-validation', kwargs={'log_id': self.failed_log.id})
 
     @patch('ai_validation.services.AIService.validate_checkin')
     def test_retry_validation_success(self, mock_validate):

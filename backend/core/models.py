@@ -30,7 +30,7 @@ class Goal(models.Model):
     # 30-day project tracking
     project_title = models.CharField(max_length=200, blank=True)
     project_description = models.TextField(blank=True)
-    start_date = models.DateField(default=timezone.now)
+    start_date = models.DateField(default=timezone.now().date)
     target_end_date = models.DateField(null=True, blank=True)
     
     # Progress tracking

@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=100, unique=True)),
                 ('api_key', models.CharField(blank=True, max_length=200)),
-                ('model_name', models.CharField(choices=[('gemini-pro', 'Gemini Pro'), ('gemini-pro-vision', 'Gemini Pro Vision')], default='gemini-pro', max_length=50)),
+                ('model_name', models.CharField(choices=[('gemini-2.5-flash', 'Gemini Pro'), ('gemini-2.5-flash', 'Gemini Pro Vision')], default='gemini-2.5-flash', max_length=50)),
                 ('max_tokens', models.IntegerField(default=1000)),
                 ('temperature', models.FloatField(default=0.7, validators=[django.core.validators.MinValueValidator(0.0), django.core.validators.MaxValueValidator(1.0)])),
                 ('is_active', models.BooleanField(default=True)),

@@ -20,15 +20,12 @@ class RegisterView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         user = serializer.save()
-        
-        # Create user settings
-        UserSettings.objects.create(user=user)
-        
+
         # Generate tokens
         refresh = RefreshToken.for_user(user)
-        
+
         return Response({
             'user': UserSerializer(user, context=self.get_serializer_context()).data,
             'refresh': str(refresh),

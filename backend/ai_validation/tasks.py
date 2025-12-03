@@ -1,6 +1,7 @@
 from celery import shared_task
 from django.utils import timezone
-from .models import DailyCheckIn, ValidationLog
+from core.models import DailyCheckIn
+from .models import ValidationLog
 from .services import AIService
 
 @shared_task

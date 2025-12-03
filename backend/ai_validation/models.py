@@ -4,13 +4,13 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 class AIConfig(models.Model):
     MODEL_CHOICES = [
-        ('gemini-pro', 'Gemini Pro'),
-        ('gemini-pro-vision', 'Gemini Pro Vision'),
+        ('gemini-2.5-flash', 'Gemini Pro'),
+        ('gemini-2.5-flash', 'Gemini Pro Vision'),
     ]
     
     name = models.CharField(max_length=100, unique=True)
     api_key = models.CharField(max_length=200, blank=True)
-    model_name = models.CharField(max_length=50, choices=MODEL_CHOICES, default='gemini-pro')
+    model_name = models.CharField(max_length=50, choices=MODEL_CHOICES, default='gemini-2.5-flash')
     max_tokens = models.IntegerField(default=1000)
     temperature = models.FloatField(default=0.7, validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
     is_active = models.BooleanField(default=True)
@@ -64,7 +64,7 @@ class ValidationLog(models.Model):
     # Validation results
     confidence_score = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
     is_approved = models.BooleanField(default=False)
-    processing_time = models.FloatField(help_text="Processing time in seconds")
+    processing_time = models.FloatField(null=True, blank=True, help_text="Processing time in seconds")
     
     # Status
     success = models.BooleanField(default=False)

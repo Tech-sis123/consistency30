@@ -43,12 +43,17 @@ class AITrainingDataSerializer(serializers.ModelSerializer):
 class AIFeedbackSerializer(serializers.ModelSerializer):
     user_email = serializers.CharField(source='user.email', read_only=True)
     habit_title = serializers.CharField(source='checkin.habit.title', read_only=True)
-    
+
     class Meta:
         model = AIFeedback
         fields = '__all__'
         read_only_fields = ('created_at', 'updated_at')
-    
+
+    def validate_checkin(self, value):
+        if value.habit.goal.user != self.context['request'].user:
+            raise serializers.ValidationError("You can only create feedback for your own check-ins.")
+        return value
+
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)
