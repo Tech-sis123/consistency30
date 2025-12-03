@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const TopNavBar = () => {
   return (
@@ -27,12 +28,16 @@ const TopNavBar = () => {
           </a>
         </div>
         <div className="flex gap-2">
+          <Link to='/login'>
           <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-secondary-button-dark text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-opacity-80 transition-colors">
             <span className="truncate">Log In</span>
           </button>
+          </Link>
+          <Link to='/register'>
           <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-opacity-90 transition-colors">
             <span className="truncate">Start Your 30-Day Journey</span>
           </button>
+          </Link>
         </div>
       </div>
       

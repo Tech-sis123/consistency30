@@ -16,7 +16,7 @@ module.exports = {
         "secondary-button-dark": "#2c2249"
       },
       fontFamily: {
-        "display": ["Inter", "sans-serif"]
+        "display": ["Inter", "sans-serif", "Plus Jakarta Sans", "Noto Sans",]
       },
       borderRadius: {
         "DEFAULT": "0.25rem",
